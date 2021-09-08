@@ -334,6 +334,7 @@ public class DiscoveryClient implements EurekaClient {
 
         // 配置参数，shouldFetchRegistry，是否从其他server拉取配置表
         if (config.shouldFetchRegistry()) {
+            // 需要就创建相应的监控
             this.registryStalenessMonitor = new ThresholdLevelsMetric(this, METRIC_REGISTRY_PREFIX + "lastUpdateSec_", new long[]{15L, 30L, 60L, 120L, 240L, 480L});
         } else {
             this.registryStalenessMonitor = ThresholdLevelsMetric.NO_OP_METRIC;
@@ -1244,6 +1245,7 @@ public class DiscoveryClient implements EurekaClient {
      */
     private void initScheduledTasks() {
         if (clientConfig.shouldFetchRegistry()) {
+            // 定时刷新注册表
             // registry cache refresh timer
             int registryFetchIntervalSeconds = clientConfig.getRegistryFetchIntervalSeconds();
             int expBackOffBound = clientConfig.getCacheRefreshExecutorExponentialBackOffBound();
@@ -1265,6 +1267,7 @@ public class DiscoveryClient implements EurekaClient {
             int expBackOffBound = clientConfig.getHeartbeatExecutorExponentialBackOffBound();
             logger.info("Starting heartbeat executor: " + "renew interval is: " + renewalIntervalInSecs);
 
+            // 定时发送心跳
             // Heartbeat timer
             scheduler.schedule(
                     new TimedSupervisorTask(
@@ -1278,6 +1281,7 @@ public class DiscoveryClient implements EurekaClient {
                     ),
                     renewalIntervalInSecs, TimeUnit.SECONDS);
 
+            // 定时复制实例信息
             // InstanceInfo replicator
             instanceInfoReplicator = new InstanceInfoReplicator(
                     this,
@@ -1285,6 +1289,7 @@ public class DiscoveryClient implements EurekaClient {
                     clientConfig.getInstanceInfoReplicationIntervalSeconds(),
                     2); // burstSize
 
+            // 监听状态变更
             statusChangeListener = new ApplicationInfoManager.StatusChangeListener() {
                 @Override
                 public String getId() {

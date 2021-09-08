@@ -135,11 +135,16 @@ public class ExampleEurekaClient {
     }
     
     public static void main(String[] args) throws UnknownHostException {
-    	injectEurekaConfiguration();
+        // 设置初始化参数
+        injectEurekaConfiguration();
+        // 创建服务实例instanceInfo
         ExampleEurekaClient sampleClient = new ExampleEurekaClient();
 
+        // 加载eureka-client.properties配置
+        // 创建服务实例管理器
         // create the client
         ApplicationInfoManager applicationInfoManager = initializeApplicationInfoManager(new MyDataCenterInstanceConfig());
+        // 创建客户端连接
         EurekaClient client = initializeEurekaClient(applicationInfoManager, new DefaultEurekaClientConfig());
 
         // use the client
