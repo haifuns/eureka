@@ -147,6 +147,7 @@ public class ResponseCacheImpl implements ResponseCache {
                                     Key cloneWithNoRegions = key.cloneWithoutRegions();
                                     regionSpecificKeys.put(cloneWithNoRegions, key);
                                 }
+                                // 从注册表中获取
                                 Value value = generatePayload(key);
                                 return value;
                             }
@@ -344,6 +345,7 @@ public class ResponseCacheImpl implements ResponseCache {
     Value getValue(final Key key, boolean useReadOnlyCache) {
         Value payload = null;
         try {
+            // 两级缓存，只读缓存+读写缓存，先从只读缓存中读，没有就从读写缓存中读，没有再从注册表中读取
             if (useReadOnlyCache) {
                 final Value currentPayload = readOnlyCacheMap.get(key);
                 if (currentPayload != null) {
@@ -407,7 +409,7 @@ public class ResponseCacheImpl implements ResponseCache {
                 case Application:
                     boolean isRemoteRegionRequested = key.hasRegions();
 
-                    if (ALL_APPS.equals(key.getName())) {
+                    if (ALL_APPS.equals(key.getName())) { // 全量注册表
                         if (isRemoteRegionRequested) {
                             tracer = serializeAllAppsWithRemoteRegionTimer.start();
                             payload = getPayLoad(key, registry.getApplicationsFromMultipleRegions(key.getRegions()));
@@ -415,7 +417,7 @@ public class ResponseCacheImpl implements ResponseCache {
                             tracer = serializeAllAppsTimer.start();
                             payload = getPayLoad(key, registry.getApplications());
                         }
-                    } else if (ALL_APPS_DELTA.equals(key.getName())) {
+                    } else if (ALL_APPS_DELTA.equals(key.getName())) { // 增量变更，最近有变化的服务实例
                         if (isRemoteRegionRequested) {
                             tracer = serializeDeltaAppsWithRemoteRegionTimer.start();
                             versionDeltaWithRegions.incrementAndGet();

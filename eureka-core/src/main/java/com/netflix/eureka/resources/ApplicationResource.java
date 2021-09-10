@@ -130,6 +130,7 @@ public class ApplicationResource {
     }
 
     /**
+     * 服务注册
      * Registers information about a particular instance for an
      * {@link com.netflix.discovery.shared.Application}.
      *

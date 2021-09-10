@@ -76,8 +76,21 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
     private static final Logger logger = LoggerFactory.getLogger(AbstractInstanceRegistry.class);
 
     private static final String[] EMPTY_STR_ARRAY = new String[0];
+
+    // 核心数据结构，注册表
+    //{
+    //    "ServiceA": {
+    //        "001": Lease<InstanceInfo>,
+    //        "002": Lease<InstanceInfo>,
+    //        "003": Lease<InstanceInfo>
+    //    },
+    //    "ServiceB": {
+    //        "001": Lease<InstanceInfo>
+    //    }
+    //}
     private final ConcurrentHashMap<String, Map<String, Lease<InstanceInfo>>> registry
             = new ConcurrentHashMap<String, Map<String, Lease<InstanceInfo>>>();
+
     protected Map<String, RemoteRegionRegistry> regionNameVSRemoteRegistry = new HashMap<String, RemoteRegionRegistry>();
     protected final ConcurrentMap<String, InstanceStatus> overriddenInstanceStatusMap = CacheBuilder
             .newBuilder().initialCapacity(500)
@@ -87,6 +100,8 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
     // CircularQueues here for debugging/statistics purposes only
     private final CircularQueue<Pair<Long, String>> recentRegisteredQueue;
     private final CircularQueue<Pair<Long, String>> recentCanceledQueue;
+
+    // 最近有变化的服务实例
     private ConcurrentLinkedQueue<RecentlyChangedItem> recentlyChangedQueue = new ConcurrentLinkedQueue<RecentlyChangedItem>();
 
     private final ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
@@ -121,7 +136,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
 
         this.renewsLastMin = new MeasuredRate(1000 * 60 * 1);
 
-        this.deltaRetentionTimer.schedule(getDeltaRetentionTask(),
+        this.deltaRetentionTimer.schedule(getDeltaRetentionTask(), // 定时任务，每隔30秒刷新最近有变化的服务实例
                 serverConfig.getDeltaRetentionTimerIntervalInMs(),
                 serverConfig.getDeltaRetentionTimerIntervalInMs());
     }
@@ -194,6 +209,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             read.lock();
             Map<String, Lease<InstanceInfo>> gMap = registry.get(registrant.getAppName());
             REGISTER.increment(isReplication);
+            // registry map就是注册表，保存服务实例信息
             if (gMap == null) {
                 final ConcurrentHashMap<String, Lease<InstanceInfo>> gNewMap = new ConcurrentHashMap<String, Lease<InstanceInfo>>();
                 gMap = registry.putIfAbsent(registrant.getAppName(), gNewMap);
@@ -201,6 +217,8 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                     gMap = gNewMap;
                 }
             }
+
+            // 通过instance id从gMap中获取服务实例租约
             Lease<InstanceInfo> existingLease = gMap.get(registrant.getId());
             // Retain the last dirty timestamp without overwriting it, if there is already a lease
             if (existingLease != null && (existingLease.getHolder() != null)) {
@@ -230,11 +248,15 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                 }
                 logger.debug("No previous lease information found; it is new registration");
             }
+
+            // 如果已经注册过了，就更新服务启动时间
             Lease<InstanceInfo> lease = new Lease<InstanceInfo>(registrant, leaseDuration);
             if (existingLease != null) {
                 lease.setServiceUpTimestamp(existingLease.getServiceUpTimestamp());
             }
             gMap.put(registrant.getId(), lease);
+
+            // 保存注册服务的队列
             synchronized (recentRegisteredQueue) {
                 recentRegisteredQueue.add(new Pair<Long, String>(
                         System.currentTimeMillis(),
@@ -255,6 +277,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                 registrant.setOverriddenStatus(overriddenStatusFromMap);
             }
 
+            // 设置服务状态
             // Set the status based on the overridden status rules
             InstanceStatus overriddenInstanceStatus = getOverriddenInstanceStatus(registrant, existingLease, isReplication);
             registrant.setStatusWithoutDirty(overriddenInstanceStatus);
@@ -266,6 +289,8 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             registrant.setActionType(ActionType.ADDED);
             recentlyChangedQueue.add(new RecentlyChangedItem(lease));
             registrant.setLastUpdatedTimestamp();
+
+            // 更新注册表多级缓存，把readWriteCacheMap ALL_APPS缓存设置过期
             invalidateCache(registrant.getAppName(), registrant.getVIPAddress(), registrant.getSecureVipAddress());
             logger.info("Registered instance {}/{} with status {} (replication={})",
                     registrant.getAppName(), registrant.getId(), registrant.getStatus(), isReplication);
@@ -1329,6 +1354,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             public void run() {
                 Iterator<RecentlyChangedItem> it = recentlyChangedQueue.iterator();
                 while (it.hasNext()) {
+                    // 保留最近3分钟有变化的服务实例
                     if (it.next().getLastUpdateTime() <
                             System.currentTimeMillis() - serverConfig.getRetentionTimeInMSInDeltaQueue()) {
                         it.remove();

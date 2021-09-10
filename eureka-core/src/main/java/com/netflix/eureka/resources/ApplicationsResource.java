@@ -63,7 +63,7 @@ public class ApplicationsResource {
 
     private final EurekaServerConfig serverConfig;
     private final PeerAwareInstanceRegistry registry;
-    private final ResponseCache responseCache;
+    private final ResponseCache responseCache; // 注册表缓存
 
     @Inject
     ApplicationsResource(EurekaServerContext eurekaServer) {
@@ -95,6 +95,7 @@ public class ApplicationsResource {
     }
 
     /**
+     * 获取全量注册表
      * Get information about all {@link com.netflix.discovery.shared.Applications}.
      *
      * @param version the version of the request.
@@ -141,6 +142,7 @@ public class ApplicationsResource {
             returnMediaType = MediaType.APPLICATION_XML;
         }
 
+        // 全量注册表的缓存key
         Key cacheKey = new Key(Key.EntityType.Application,
                 ResponseCacheImpl.ALL_APPS,
                 keyType, CurrentRequestVersion.get(), EurekaAccept.fromString(eurekaAccept), regions
@@ -160,6 +162,7 @@ public class ApplicationsResource {
     }
 
     /**
+     * 增量更新请求
      * Get information about all delta changes in {@link com.netflix.discovery.shared.Applications}.
      *
      * <p>
@@ -221,6 +224,7 @@ public class ApplicationsResource {
             returnMediaType = MediaType.APPLICATION_XML;
         }
 
+        // 获取ALL_APPS_DELTA缓存
         Key cacheKey = new Key(Key.EntityType.Application,
                 ResponseCacheImpl.ALL_APPS_DELTA,
                 keyType, CurrentRequestVersion.get(), EurekaAccept.fromString(eurekaAccept), regions

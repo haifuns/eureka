@@ -214,6 +214,7 @@ public abstract class AbstractJersey2EurekaHttpClient implements EurekaHttpClien
 
     @Override
     public EurekaHttpResponse<Applications> getDelta(String... regions) {
+        // http://localhost:8080/v2/apps/delta
         return getApplicationsInternal("apps/delta", regions);
     }
 
@@ -255,6 +256,7 @@ public abstract class AbstractJersey2EurekaHttpClient implements EurekaHttpClien
     private EurekaHttpResponse<Applications> getApplicationsInternal(String urlPath, String[] regions) {
         Response response = null;
         try {
+            // 发送http get请求拉取全量注册表，http://localhost:8080/v2/apps
             WebTarget webTarget = jerseyClient.target(serviceUrl).path(urlPath);
             if (regions != null && regions.length > 0) {
                 webTarget = webTarget.queryParam("regions", StringUtil.join(regions));

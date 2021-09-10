@@ -416,6 +416,7 @@ public class DiscoveryClient implements EurekaClient {
             throw new RuntimeException("Failed to initialize DiscoveryClient!", e);
         }
 
+        // 抓取注册表
         if (clientConfig.shouldFetchRegistry() && !fetchRegistry(false)) {
             fetchRegistryFromBackup();
         }
@@ -947,8 +948,11 @@ public class DiscoveryClient implements EurekaClient {
                 logger.info("Registered Applications size is zero : {}",
                         (applications.getRegisteredApplications().size() == 0));
                 logger.info("Application version is -1: {}", (applications.getVersion() == -1));
+
+                // 拉取全量注册表
                 getAndStoreFullRegistry();
             } else {
+                // 增量拉取，更新注册表
                 getAndUpdateDelta(applications);
             }
             applications.setAppsHashCode(applications.getReconcileHashCode());
@@ -1081,7 +1085,7 @@ public class DiscoveryClient implements EurekaClient {
             String reconcileHashCode = "";
             if (fetchRegistryUpdateLock.tryLock()) {
                 try {
-                    updateDelta(delta);
+                    updateDelta(delta); // 更新增量注册表
                     reconcileHashCode = getReconcileHashCode(applications);
                 } finally {
                     fetchRegistryUpdateLock.unlock();
@@ -1089,6 +1093,7 @@ public class DiscoveryClient implements EurekaClient {
             } else {
                 logger.warn("Cannot acquire update lock, aborting getAndUpdateDelta");
             }
+            // 对比本地hash值与增量delta返回的hash，不一样需要重新拉取全量注册表
             // There is a diff in number of instances for some reason
             if (!reconcileHashCode.equals(delta.getAppsHashCode()) || clientConfig.shouldLogDeltaDiff()) {
                 reconcileAndLogDifference(delta, reconcileHashCode);  // this makes a remoteCall
@@ -1257,7 +1262,7 @@ public class DiscoveryClient implements EurekaClient {
                             registryFetchIntervalSeconds,
                             TimeUnit.SECONDS,
                             expBackOffBound,
-                            new CacheRefreshThread()
+                            new CacheRefreshThread() // 抓取注册表线程
                     ),
                     registryFetchIntervalSeconds, TimeUnit.SECONDS);
         }
