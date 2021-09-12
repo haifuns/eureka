@@ -108,6 +108,7 @@ public class Lease<T> {
      * @param additionalLeaseMs any additional lease time to add to the lease evaluation in ms.
      */
     public boolean isExpired(long additionalLeaseMs) {
+        // 这里是个bug，实际上加了两个duration，也就是说 补偿时间 + 90s * 2 = 补偿时间 + 180s 没有心跳才会认为服务实例宕机了
         return (evictionTimestamp > 0 || System.currentTimeMillis() > (lastUpdateTimestamp + duration + additionalLeaseMs));
     }
 

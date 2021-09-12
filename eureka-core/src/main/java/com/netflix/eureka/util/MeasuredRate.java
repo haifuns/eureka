@@ -48,11 +48,14 @@ public class MeasuredRate {
 
     public synchronized void start() {
         if (!isActive) {
+            // 每分钟统一一次心跳数
             timer.schedule(new TimerTask() {
 
                 @Override
                 public void run() {
                     try {
+
+                        // currentBucket是当前的心跳次数，lastBucket是上一分钟的心跳次数
                         // Zero out the current bucket.
                         lastBucket.set(currentBucket.getAndSet(0));
                     } catch (Throwable e) {

@@ -192,6 +192,7 @@ class AcceptorExecutor<ID, T> {
                         scheduleTime = now + trafficShaper.transmissionDelay();
                     }
                     if (scheduleTime <= now) {
+                        // 打包batch
                         assignBatchWork();
                         assignSingleItemWork();
                     }
@@ -289,6 +290,7 @@ class AcceptorExecutor<ID, T> {
         }
 
         void assignBatchWork() {
+            // 每隔500ms打包一个batch
             if (hasEnoughTasksForNextBatch()) {
                 if (batchWorkRequests.tryAcquire(1)) {
                     long now = System.currentTimeMillis();

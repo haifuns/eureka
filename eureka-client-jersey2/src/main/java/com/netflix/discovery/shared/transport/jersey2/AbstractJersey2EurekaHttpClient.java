@@ -110,6 +110,7 @@ public abstract class AbstractJersey2EurekaHttpClient implements EurekaHttpClien
 
     @Override
     public EurekaHttpResponse<Void> cancel(String appName, String id) {
+        // 取消续约，delete请求，http://localhost:8080/v2/apps/ServeiceA/instanceId
         String urlPath = "apps/" + appName + '/' + id;
         Response response = null;
         try {
@@ -130,6 +131,7 @@ public abstract class AbstractJersey2EurekaHttpClient implements EurekaHttpClien
 
     @Override
     public EurekaHttpResponse<InstanceInfo> sendHeartBeat(String appName, String id, InstanceInfo info, InstanceStatus overriddenStatus) {
+        // 心跳http put请求，http://localhost:8080/v2/apps/ServiceA/instanceId
         String urlPath = "apps/" + appName + '/' + id;
         Response response = null;
         try {

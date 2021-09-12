@@ -118,6 +118,7 @@ public class ApplicationResource {
     }
 
     /**
+     * 应用心跳
      * Gets information about a particular instance of an application.
      *
      * @param id
@@ -138,7 +139,7 @@ public class ApplicationResource {
      *            {@link InstanceInfo} information of the instance.
      * @param isReplication
      *            a header parameter containing information whether this is
-     *            replicated from other nodes.
+     *            replicated from other nodes. 表示是否是同步状态，true只在本地处理，false还需要同步到其他server
      */
     @POST
     @Consumes({"application/json", "application/xml"})
